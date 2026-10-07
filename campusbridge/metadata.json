@@ -1,0 +1,6 @@
+{
+  "name": "CampusBridge",
+  "description": "AI-powered Academic–Industry Collaboration Platform connecting students, colleges, and industry through skill mapping, skill-gap analysis, and intelligent matching.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
