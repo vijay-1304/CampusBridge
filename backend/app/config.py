@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Backend-only privileged key for administrative / RLS-bypass operations
     SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
 
+    # Gemini AI Configuration
+    GEMINI_API_KEY: Optional[str] = None
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
