@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.services.supabase_service import check_supabase_connection
+from app.api.v1.router import api_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api_router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():

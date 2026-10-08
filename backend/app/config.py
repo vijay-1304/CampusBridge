@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # Supabase Configuration
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None
+    # Backend-only privileged key for administrative / RLS-bypass operations
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
