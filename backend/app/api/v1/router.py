@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, industry, matching, students
+from app.api.v1.endpoints import auth, colleges, industry, matching, students
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,6 +20,12 @@ api_router.include_router(
     industry.router,
     prefix="/industry",
     tags=["Industry Challenges"],
+)
+
+api_router.include_router(
+    colleges.router,
+    prefix="/colleges",
+    tags=["Colleges & Capabilities"],
 )
 
 api_router.include_router(

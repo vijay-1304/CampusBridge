@@ -235,6 +235,29 @@ class AuthService:
                     logger.error("Failed to rollback orphaned auth user %s: %s", user_id, rollback_err)
             raise profile_err
 
+        # If user registered as a college, initialize the corresponding institution record
+        if request.role == UserRole.COLLEGE:
+            try:
+                col_client = get_supabase_admin_client() if has_supabase_admin_key() else client
+                col_client.table("colleges").insert({
+                    "profile_id": user_id,
+                    "college_name": request.full_name,
+                }).execute()
+            except Exception as college_err:
+                logger.error("College institution creation failed after auth signup for user %s: %s", user_id, college_err)
+                if has_supabase_admin_key():
+                    try:
+                        admin_client = get_supabase_admin_client()
+                        admin_client.table("profiles").delete().eq("id", user_id).execute()
+                        admin_client.auth.admin.delete_user(user_id)
+                        logger.info("Rolled back orphaned auth user and profile %s after college record creation failure.", user_id)
+                    except Exception as rb_err:
+                        logger.error("Failed rollback after college record creation failure: %s", rb_err)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Account registered, but failed to initialize college institution profile record.",
+                )
+
         # Determine if email confirmation is required by Supabase
         session_data: Optional[SessionData] = None
         email_confirmation_required = False

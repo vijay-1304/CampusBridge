@@ -3,7 +3,9 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, status
 
 from app.dependencies import require_role
+from app.schemas.college import CollegeMatchesResponse
 from app.schemas.matching import ChallengeMatchesResponse, MatchingRunResponse
+from app.services.college_service import CollegeService
 from app.services.matching_service import MatchingService
 
 logger = logging.getLogger(__name__)
@@ -61,3 +63,24 @@ async def get_challenge_matches(
         challenge_id=challenge_id,
         industry_id=industry_id,
     )
+
+
+@router.get(
+    "/college/me",
+    response_model=CollegeMatchesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve ranked matches for authenticated college",
+    description=(
+        "Allows an authenticated college to view matches associated with its own institution. "
+        "Results are ordered by overall_score DESC. Requires authenticated college role."
+    ),
+)
+async def get_my_college_matches(
+    current_user: Dict[str, Any] = Depends(require_role("college")),
+) -> CollegeMatchesResponse:
+    """
+    Get ranked matches associated with the caller's college.
+    Identity is strictly derived from the caller's authenticated token.
+    """
+    profile_id = current_user["user"]["id"]
+    return CollegeService.get_college_matches(profile_id)
