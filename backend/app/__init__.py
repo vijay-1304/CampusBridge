@@ -1,0 +1,1 @@
+"""CampusBridge FastAPI Application Package."""
