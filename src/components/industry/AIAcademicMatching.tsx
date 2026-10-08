@@ -15,8 +15,22 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { matchingApi } from '../../services/api';
+
+interface EvaluatedMatch {
+  id: string;
+  collegeName: string;
+  location: string;
+  skill_score: number | null;
+  capability_score: number | null;
+  overall_score: number | null;
+  reasoning: string;
+  facultyCount: number;
+  pastCollaborations: number;
+  keyFacilities: string[];
+}
 
 interface AIAcademicMatchingProps {
   challenge: IndustryChallenge;
@@ -33,7 +47,7 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
   onOpenCollaborationRequest,
   onNavigate,
 }) => {
-  const [sortBy, setSortBy] = useState<'match' | 'domain' | 'location' | 'capability'>('match');
+  const [sortBy, setSortBy] = useState<'overall' | 'skill' | 'capability' | 'location'>('overall');
   const [realMatches, setRealMatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasRunBackend, setHasRunBackend] = useState(false);
@@ -45,9 +59,9 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
 
     setIsLoading(true);
     try {
-      // First try running the deterministic matching engine
+      // 1. Trigger deterministic matching engine execution
       await matchingApi.runChallengeMatching(challenge.id).catch(() => null);
-      // Fetch the calculated matches
+      // 2. Retrieve persisted ranked matches
       const res = await matchingApi.getChallengeMatches(challenge.id).catch(() => null);
       if (res && Array.isArray(res.matches)) {
         setRealMatches(res.matches);
@@ -62,35 +76,42 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
     fetchBackendMatches();
   }, [challenge.id]);
 
-  // Use real backend matches if available, else fall back to initial demo matches
-  const displayMatches: AcademicMatch[] =
+  // Use ONLY actual backend values from real matches or initial props without fabricated fallbacks
+  const displayMatches: EvaluatedMatch[] =
     realMatches.length > 0
       ? realMatches.map((m: any) => ({
-          id: m.college_id || m.id,
-          collegeName: m.college?.name || m.college_name || 'Academic Institution',
-          matchScore: Math.round(m.overall_match_score || m.match_score || 0),
-          location: m.college?.location || 'India',
-          strengths: m.matched_skills || ['High Capability Coverage', 'Infrastructure Ready'],
-          keyFacilities: m.college?.facilities || ['Specialized R&D Lab'],
-          facultyCount: m.faculty_count || 12,
-          pastCollaborations: m.past_collaborations || 0,
-          compatibility: {
-            skills: Math.round(m.skill_coverage_score || m.skill_score || 85),
-            domain: Math.round(m.domain_score || 80),
-            infrastructure: Math.round(m.infrastructure_score || 85),
-            collaborationFit: Math.round(m.overall_match_score || 85),
-          },
+          id: m.college_id || m.id || 'unknown-id',
+          collegeName: m.college_name || m.college?.name || 'Academic Institution',
+          location: m.college_location || m.college?.location || 'Location Not Specified',
+          skill_score: typeof m.skill_score === 'number' ? m.skill_score : null,
+          capability_score: typeof m.capability_score === 'number' ? m.capability_score : null,
+          overall_score: typeof m.overall_score === 'number' ? m.overall_score : null,
+          reasoning: m.reasoning || 'No evaluation reasoning provided.',
+          facultyCount: typeof m.faculty_count === 'number' ? m.faculty_count : 0,
+          pastCollaborations: typeof m.past_collaborations === 'number' ? m.past_collaborations : 0,
+          keyFacilities: Array.isArray(m.facilities) ? m.facilities : [],
         }))
-      : initialMatches;
+      : initialMatches.map((m: AcademicMatch) => ({
+          id: m.id,
+          collegeName: m.collegeName,
+          location: m.location,
+          skill_score: typeof m.skill_score === 'number' ? m.skill_score : m.matchScore,
+          capability_score: typeof m.capability_score === 'number' ? m.capability_score : m.matchScore,
+          overall_score: typeof m.overall_score === 'number' ? m.overall_score : m.matchScore,
+          reasoning: m.reasoning || m.strengths?.join(' · ') || 'Evaluated academic collaboration match.',
+          facultyCount: m.facultyCount || 0,
+          pastCollaborations: m.pastCollaborations || 0,
+          keyFacilities: m.keyFacilities || [],
+        }));
 
   const topMatch = displayMatches.length > 0 ? displayMatches[0] : null;
   const otherMatches = displayMatches.slice(1);
 
   const sortedOther = [...otherMatches].sort((a, b) => {
-    if (sortBy === 'match') return b.matchScore - a.matchScore;
-    if (sortBy === 'location') return a.location.localeCompare(b.location);
-    if (sortBy === 'domain') return b.compatibility.domain - a.compatibility.domain;
-    if (sortBy === 'capability') return b.facultyCount - a.facultyCount;
+    if (sortBy === 'overall') return (b.overall_score ?? -1) - (a.overall_score ?? -1);
+    if (sortBy === 'skill') return (b.skill_score ?? -1) - (a.skill_score ?? -1);
+    if (sortBy === 'capability') return (b.capability_score ?? -1) - (a.capability_score ?? -1);
+    if (sortBy === 'location') return (a.location || '').localeCompare(b.location || '');
     return 0;
   });
 
@@ -120,13 +141,13 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
           <Sparkles className="w-4 h-4" />
-          <span>Multilateral Academic Matching</span>
+          <span>Deterministic Academic Matching</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          AI Academic Partner Matching
+          Academic Partner Matching
         </h1>
         <p className="text-sm text-slate-500">
-          Ranked institutions evaluated on research labs, specialized computing infrastructure, and mentored student talent.
+          Ranked institutions evaluated strictly through deterministic proficiency fit and skill coverage formulas.
         </p>
       </div>
 
@@ -148,8 +169,8 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
       {isLoading ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-          <div className="text-sm font-semibold text-slate-800">Calculating Deterministic College Alignment...</div>
-          <p className="text-xs text-slate-500">Scoring institutional capabilities and computing faculty overlap.</p>
+          <div className="text-sm font-semibold text-slate-800">Executing Deterministic Matching Engine...</div>
+          <p className="text-xs text-slate-500">Computing proficiency fit and skill coverage across active college capabilities.</p>
         </div>
       ) : topMatch ? (
         <>
@@ -176,61 +197,74 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
 
               <div className="sm:text-right shrink-0 bg-white sm:bg-transparent p-4 sm:p-0 rounded-lg border sm:border-none border-slate-200">
                 <div className="text-4xl font-extrabold text-[#173B63] font-mono">
-                  {topMatch.matchScore}%
+                  {topMatch.overall_score !== null ? `${topMatch.overall_score}%` : 'Not available'}
                 </div>
-                <div className="text-xs font-semibold text-blue-700">Calculated Match Score</div>
+                <div className="text-xs font-semibold text-blue-700">Overall Match Score</div>
                 <div className="text-[10px] text-slate-400 font-mono">Deterministic Evaluation</div>
               </div>
             </div>
 
-            {/* WHY THIS MATCH */}
-            <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
-                Why This Match?
+            {/* WHY THIS MATCH (Real Explainable Reasoning from Backend) */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                <span>Why This Match?</span>
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-800">
-                {topMatch.strengths.map((s, idx) => (
-                  <div key={idx} className="flex items-start gap-2 p-2 bg-white rounded border border-slate-200">
-                    <span className="text-emerald-700 font-bold shrink-0">✓</span>
-                    <span>{s}</span>
-                  </div>
-                ))}
+              <div className="p-4 bg-white rounded-lg border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed">
+                {topMatch.reasoning}
               </div>
             </div>
 
-            {/* MATCH BREAKDOWN METRICS */}
+            {/* EXACT THREE DETERMINISTIC METRICS */}
             <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-slate-900">
                 <span>Deterministic Compatibility Breakdown</span>
                 <span className="text-[10px] text-slate-400 font-normal">
-                  Real algorithmic breakdown
+                  Calculated by deterministic matching engine
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-1">
-                <div className="p-2.5 bg-slate-50 rounded border border-slate-100">
-                  <div className="text-slate-500 text-[11px]">Skill Compatibility</div>
-                  <div className="text-lg font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.compatibility.skills}%
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-1">
+                {/* 1. Skill Proficiency Fit */}
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                    <span className="font-semibold text-slate-700">Skill Proficiency Fit</span>
+                    <span className="font-mono text-blue-700 font-bold">Weight: 70%</span>
                   </div>
+                  <div className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                    {topMatch.skill_score !== null ? `${topMatch.skill_score}%` : 'Not available'}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    Weighted proficiency fit across all required skills.
+                  </p>
                 </div>
-                <div className="p-2.5 bg-slate-50 rounded border border-slate-100">
-                  <div className="text-slate-500 text-[11px]">Domain Alignment</div>
-                  <div className="text-lg font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.compatibility.domain}%
+
+                {/* 2. Capability Skill Coverage */}
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                    <span className="font-semibold text-slate-700">Capability Skill Coverage</span>
+                    <span className="font-mono text-blue-700 font-bold">Weight: 30%</span>
                   </div>
+                  <div className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                    {topMatch.capability_score !== null ? `${topMatch.capability_score}%` : 'Not available'}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    Weighted proportion of required skills possessed by institution.
+                  </p>
                 </div>
-                <div className="p-2.5 bg-slate-50 rounded border border-slate-100">
-                  <div className="text-slate-500 text-[11px]">Infrastructure &amp; Labs</div>
-                  <div className="text-lg font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.compatibility.infrastructure}%
+
+                {/* 3. Overall Deterministic Match */}
+                <div className="p-3.5 bg-blue-50/50 rounded-lg border border-blue-100">
+                  <div className="flex items-center justify-between text-[11px] text-blue-900 mb-1">
+                    <span className="font-semibold text-blue-900">Overall Deterministic Match</span>
+                    <span className="font-mono text-blue-700 font-bold">Formula</span>
                   </div>
-                </div>
-                <div className="p-2.5 bg-slate-50 rounded border border-slate-100">
-                  <div className="text-slate-500 text-[11px]">Overall Score</div>
-                  <div className="text-lg font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.compatibility.collaborationFit}%
+                  <div className="text-2xl font-bold text-[#173B63] font-mono mt-1">
+                    {topMatch.overall_score !== null ? `${topMatch.overall_score}%` : 'Not available'}
                   </div>
+                  <p className="text-[10px] text-blue-700 mt-1 leading-tight">
+                    (Skill × 0.70) + (Coverage × 0.30)
+                  </p>
                 </div>
               </div>
             </div>
@@ -273,10 +307,10 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     onChange={(e) => setSortBy(e.target.value as any)}
                     className="px-2.5 py-1 text-xs border border-slate-300 rounded-md bg-white font-medium text-slate-700"
                   >
-                    <option value="match">Match Score</option>
-                    <option value="domain">Domain Alignment</option>
+                    <option value="overall">Overall Score</option>
+                    <option value="skill">Skill Proficiency</option>
+                    <option value="capability">Capability Coverage</option>
                     <option value="location">Location</option>
-                    <option value="capability">Faculty Size</option>
                   </select>
                 </div>
               </div>
@@ -287,26 +321,39 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     key={match.id}
                     className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <span>{match.location}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{match.facultyCount} Faculty</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{match.pastCollaborations} Past Projects</span>
+                        {match.facultyCount > 0 && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>{match.facultyCount} Faculty</span>
+                          </>
+                        )}
+                        {match.pastCollaborations > 0 && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>{match.pastCollaborations} Past Projects</span>
+                          </>
+                        )}
                       </div>
                       <h3 className="text-base font-bold text-slate-900">{match.collegeName}</h3>
-                      <div className="text-xs text-slate-600">
-                        Facilities: {match.keyFacilities.join(' · ')}
+                      <p className="text-xs text-slate-600 line-clamp-2">
+                        {match.reasoning}
+                      </p>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono pt-0.5">
+                        <span>Skill Fit: {match.skill_score !== null ? `${match.skill_score}%` : 'N/A'}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Coverage: {match.capability_score !== null ? `${match.capability_score}%` : 'N/A'}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                       <div className="text-right">
                         <div className="text-xl font-bold text-slate-800 font-mono">
-                          {match.matchScore}%
+                          {match.overall_score !== null ? `${match.overall_score}%` : 'Not available'}
                         </div>
-                        <div className="text-[10px] text-slate-400">Match Score</div>
+                        <div className="text-[10px] text-slate-400">Overall Match</div>
                       </div>
 
                       <button
