@@ -1,108 +1,82 @@
-import React from 'react';
-import { StudentProfile, StudentNavView } from '../../types';
+import React, { useEffect, useState } from 'react';
+import { StudentNavView } from '../../types';
 import {
   ArrowLeft,
   Sparkles,
-  Award,
-  CheckCircle2,
-  BookOpen,
-  ArrowRight,
   Shield,
   Layers,
   GraduationCap,
   ExternalLink,
-  Cpu,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { studentApi } from '../../services/api';
 
 interface SkillPassportProps {
-  profile: StudentProfile;
   onNavigate: (view: StudentNavView) => void;
 }
 
-export const SkillPassport: React.FC<SkillPassportProps> = ({ profile, onNavigate }) => {
-  // Evidence map providing honest, verifiable attribution for student competencies
-  const skillEvidenceList = [
-    {
-      name: 'Python',
-      level: 'Advanced',
-      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      evidenceType: 'Project & Coursework Evidence',
-      evidenceDetail: 'Core development in CampusBridge & data structures coursework',
-      badge: 'Academic Capstone',
-    },
-    {
-      name: 'JavaScript',
-      level: 'Advanced',
-      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      evidenceType: 'Project Evidence',
-      evidenceDetail: 'Front-end state architecture & responsive client interfaces',
-      badge: 'Prototype Build',
-    },
-    {
-      name: 'React',
-      level: 'Advanced',
-      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      evidenceType: 'Project Evidence',
-      evidenceDetail: 'CampusBridge collaboration platform implementation',
-      badge: 'Hackathon MVP',
-    },
-    {
-      name: 'SQL',
-      level: 'Advanced',
-      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      evidenceType: 'Coursework Evidence',
-      evidenceDetail: 'Relational database schema normalization & index optimization',
-      badge: 'University Lab',
-    },
-    {
-      name: 'Machine Learning',
-      level: 'Intermediate',
-      levelColor: 'bg-blue-100 text-blue-800 border-blue-200',
-      evidenceType: 'Project / Coursework Evidence',
-      evidenceDetail: 'PyTorch deep learning specialization & supervised model training',
-      badge: 'DeepLearning.AI',
-    },
-    {
-      name: 'Computer Vision',
-      level: profile.skills.some((s) => s.name === 'Computer Vision' && s.proficiency === 'Advanced')
-        ? 'Advanced'
-        : 'Developing',
-      levelColor: profile.skills.some((s) => s.name === 'Computer Vision' && s.proficiency === 'Advanced')
-        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-        : 'bg-amber-100 text-amber-800 border-amber-200',
-      evidenceType: profile.skills.some((s) => s.name === 'Computer Vision' && s.proficiency === 'Advanced')
-        ? 'Collaboration Project Evidence'
-        : 'Skill Gap Analysis & Coursework',
-      evidenceDetail: profile.skills.some((s) => s.name === 'Computer Vision' && s.proficiency === 'Advanced')
-        ? 'Completed ABC Technologies edge defect detection capstone sprint'
-        : 'Target skill mapped against active industry defect inspection challenges',
-      badge: profile.skills.some((s) => s.name === 'Computer Vision' && s.proficiency === 'Advanced')
-        ? 'ABC Technologies Sprint'
-        : 'Target Competency',
-    },
-    {
-      name: 'OpenCV',
-      level: profile.skills.some((s) => s.name === 'OpenCV' && s.proficiency === 'Advanced')
-        ? 'Advanced'
-        : 'Developing',
-      levelColor: profile.skills.some((s) => s.name === 'OpenCV' && s.proficiency === 'Advanced')
-        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-        : 'bg-amber-100 text-amber-800 border-amber-200',
-      evidenceType: profile.skills.some((s) => s.name === 'OpenCV' && s.proficiency === 'Advanced')
-        ? 'Collaboration Project Evidence'
-        : 'Recommended Project Practice',
-      evidenceDetail: profile.skills.some((s) => s.name === 'OpenCV' && s.proficiency === 'Advanced')
-        ? 'Edge inferencing & image augmentation on factory assembly camera feeds'
-        : 'Hands-on module in skill roadmap for industrial defect detection',
-      badge: profile.skills.some((s) => s.name === 'OpenCV' && s.proficiency === 'Advanced')
-        ? 'Industry Sprint'
-        : 'Learning Path',
-    },
-  ];
+interface PassportData {
+  student_id: string;
+  full_name: string;
+  target_role?: string;
+  total_skills: number;
+  verified_skills_count: number;
+  skills_by_category: Record<string, any[]>;
+  skills: Array<{
+    id: string;
+    skill_id: string;
+    skill_name: string;
+    category?: string;
+    proficiency_level: number;
+    source: string;
+    evidence_url?: string;
+    is_verified: boolean;
+  }>;
+}
+
+export const SkillPassport: React.FC<SkillPassportProps> = ({ onNavigate }) => {
+  const [passport, setPassport] = useState<PassportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPassport = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await studentApi.getPassport();
+        setPassport(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load skill passport.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPassport();
+  }, []);
+
+  const getProficiencyLabel = (lvl: number) => {
+    switch (lvl) {
+      case 1:
+        return 'Novice (1/5)';
+      case 2:
+        return 'Beginner (2/5)';
+      case 3:
+        return 'Intermediate (3/5)';
+      case 4:
+        return 'Advanced (4/5)';
+      case 5:
+        return 'Expert (5/5)';
+      default:
+        return `Level ${lvl}/5`;
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-10">
-      {/* 1. BACK BUTTON */}
+      {/* GLOBAL BACK BUTTON */}
       <div>
         <button
           onClick={() => onNavigate('skills')}
@@ -113,166 +87,144 @@ export const SkillPassport: React.FC<SkillPassportProps> = ({ profile, onNavigat
         </button>
       </div>
 
-      {/* 2. PASSPORT HEADER BADGE */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-[#173B63] text-white flex items-center justify-center font-bold text-2xl shadow-inner shrink-0">
-              VB
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded">
-                <Sparkles className="w-3 h-3" />
-                <span>AI Skill Passport · Candidate Evidence Record</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                {profile.name}
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
-                <span className="font-medium text-slate-700">{profile.degree}</span>
-                <span aria-hidden="true">·</span>
-                <span>{profile.institution}</span>
-                <span aria-hidden="true">·</span>
-                <span className="text-blue-700 font-semibold">Target: {profile.targetRole}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="sm:text-right">
-            <div className="text-xs text-slate-500 font-medium">Passport Completion</div>
-            <div className="text-2xl font-extrabold text-[#173B63] font-mono mt-0.5">
-              {profile.profileCompletion}%
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Prototype Evidence Profile</div>
-          </div>
+      {/* 1. HEADER */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
+          <Shield className="w-4 h-4" />
+          <span>Verifiable Competency Record</span>
         </div>
-
-        {/* Closed-Loop Notice */}
-        <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-600 leading-relaxed flex items-start gap-2.5">
-          <Shield className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold text-slate-800">Authentic Competency Attribution: </span>
-            Skill levels below are grounded in demonstrable project repositories, university coursework, and industry capstone collaboration sprints.
-          </div>
-        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          AI Skill Passport
+        </h1>
+        <p className="text-sm text-slate-500">
+          Cryptographically grounded skill claims derived from coursework, real projects, and verified academic deliverables.
+        </p>
       </div>
 
-      {/* 3. CLOSED-LOOP SKILL JOURNEY VISUALIZER */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
-        <div>
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            The CampusBridge Closed-Loop Journey
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            How academic coursework converts into verifiable industry collaboration outcomes:
-          </p>
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div>{error}</div>
         </div>
+      )}
 
-        {/* Visual Workflow Steps */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
-          {[
-            { step: '01', title: 'LEARN', desc: 'Core Curriculum' },
-            { step: '02', title: 'BUILD', desc: 'Lab Projects' },
-            { step: '03', title: 'MAP GAP', desc: 'AI Diagnostic' },
-            { step: '04', title: 'MATCH', desc: 'Industry Needs' },
-            { step: '05', title: 'COLLABORATE', desc: 'Sprint Workspace' },
-            { step: '06', title: 'DELIVER', desc: 'Edge Prototype' },
-            { step: '07', title: 'EVIDENCE', desc: 'Faculty Review' },
-            { step: '08', title: 'UPDATE', desc: 'Skill Passport' },
-          ].map((item, idx) => (
-            <div
-              key={item.step}
-              className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/70 text-center flex flex-col justify-between"
-            >
-              <div className="text-[10px] font-mono font-bold text-blue-600">{item.step}</div>
-              <div className="text-xs font-bold text-slate-900 mt-1">{item.title}</div>
-              <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{item.desc}</div>
+      {loading && (
+        <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <p className="text-xs">Generating Skill Passport from verified database records...</p>
+        </div>
+      )}
+
+      {!loading && passport && (
+        <>
+          {/* PASSPORT SUMMARY CARD */}
+          <div className="bg-gradient-to-br from-slate-900 via-[#173B63] to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-700">
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-200 border border-blue-400/30 rounded-full text-[11px] font-medium mb-3">
+                  <Sparkles className="w-3 h-3 text-blue-300" />
+                  <span>CampusBridge Verified Talent ID</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{passport.full_name}</h2>
+                <p className="text-xs text-slate-300 mt-1">
+                  Target Role: {passport.target_role || 'Software & AI Engineer'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 bg-white/10 backdrop-blur-xs p-4 rounded-xl border border-white/10 text-center">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{passport.total_skills}</div>
+                  <div className="text-[11px] text-slate-300 font-medium mt-0.5">Total Skills</div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                    {passport.verified_skills_count}
+                  </div>
+                  <div className="text-[11px] text-emerald-200 font-medium mt-0.5">Verified Badges</div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. SKILL & EVIDENCE MATRIX */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Competency Evidence Inventory</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Individual skill competencies mapped with specific project artifacts and evidence sources.
-            </p>
           </div>
-          <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded">
-            {skillEvidenceList.length} Competencies Cataloged
-          </span>
-        </div>
 
-        <div className="divide-y divide-slate-100">
-          {skillEvidenceList.map((skill) => (
-            <div key={skill.name} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold text-slate-900">{skill.name}</span>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${skill.levelColor}`}
+          {/* EMPTY SKILLS STATE */}
+          {passport.skills.length === 0 && (
+            <div className="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center space-y-3">
+              <div className="text-slate-400 font-medium text-xs">
+                No skill claims recorded yet. Add your technical skills in the My Skills section.
+              </div>
+              <button
+                onClick={() => onNavigate('skills')}
+                className="px-3.5 py-2 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg"
+              >
+                Add Skills to Passport
+              </button>
+            </div>
+          )}
+
+          {/* VERIFIED SKILL CLAIMS TABLE */}
+          {passport.skills.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-blue-600" />
+                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Itemized Competency Inventory
+                  </h2>
+                </div>
+                <span className="text-xs text-slate-400 font-mono">
+                  {passport.skills.length} competencies
+                </span>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {passport.skills.map((skill) => (
+                  <div
+                    key={skill.id}
+                    className="p-4 sm:p-5 hover:bg-slate-50/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    {skill.level}
-                  </span>
-                  <span className="text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                    {skill.badge}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-600">
-                  <span className="font-semibold text-slate-700">Evidence: </span>
-                  <span>{skill.evidenceType}</span>
-                </div>
-                <div className="text-[11px] text-slate-500 italic">
-                  {skill.evidenceDetail}
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm font-bold text-slate-900">{skill.skill_name}</span>
+                        {skill.category && (
+                          <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">
+                            {skill.category}
+                          </span>
+                        )}
+                        {skill.is_verified ? (
+                          <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-semibold">
+                            ✓ Verified Claim
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded">
+                            Self-Reported
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500 flex items-center gap-3">
+                        <span>Proficiency: {getProficiencyLabel(skill.proficiency_level)}</span>
+                        <span>·</span>
+                        <span className="capitalize">Source: {skill.source.replace('_', ' ')}</span>
+                      </div>
+                    </div>
 
-              <div className="self-start sm:self-center shrink-0">
-                <button
-                  onClick={() => onNavigate('opportunities')}
-                  className="text-xs font-semibold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
-                >
-                  <span>Matching Opportunities</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+                    {skill.evidence_url && (
+                      <a
+                        href={skill.evidence_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors self-start sm:self-auto"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Evidence Artifact</span>
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. PRACTICAL ACTIONS */}
-      <div className="bg-gradient-to-br from-[#173B63] to-slate-900 text-white rounded-xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-200 uppercase tracking-widest mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Next Career Step</span>
-          </div>
-          <h3 className="text-xl font-bold">Close High-Impact Skill Gaps</h3>
-          <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
-            Apply to active industry challenges or complete structured learning paths to earn project evidence for Computer Vision and OpenCV.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => onNavigate('skill-gap')}
-            className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-sm transition-all"
-          >
-            Review Skill Gap
-          </button>
-          <button
-            onClick={() => onNavigate('opportunities')}
-            className="px-5 py-2.5 text-xs font-semibold text-slate-900 bg-white hover:bg-slate-100 rounded-lg shadow-sm transition-all inline-flex items-center gap-1.5"
-          >
-            <span>Browse Opportunities</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

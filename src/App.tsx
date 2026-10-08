@@ -70,14 +70,24 @@ import { ProjectOutcomeView } from './components/college/ProjectOutcomeView';
 // Admin Components
 import { AdminOverview } from './components/admin/AdminOverview';
 import { CheckCircle2, Sparkles } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-export default function App() {
+function AppContent() {
+  const { role: authRole, profile: authProfile, isAuthenticated, setRoleOverride } = useAuth();
+
   // Navigation & Role State
   const [currentRole, setCurrentRole] = useState<UserRole>('public');
   const [studentView, setStudentView] = useState<StudentNavView>('home');
   const [industryView, setIndustryView] = useState<IndustryNavView>('overview');
   const [collegeView, setCollegeView] = useState<CollegeNavView>('overview');
   const [adminView, setAdminView] = useState<AdminNavView>('overview');
+
+  // Sync role with auth session
+  useEffect(() => {
+    if (isAuthenticated && authRole) {
+      setCurrentRole(authRole);
+    }
+  }, [authRole, isAuthenticated]);
 
   // Modals State
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -109,6 +119,7 @@ export default function App() {
   // Navigation handlers
   const handleSelectRole = (role: UserRole) => {
     setCurrentRole(role);
+    setRoleOverride(role);
     if (role === 'student') setStudentView('home');
     if (role === 'industry') setIndustryView('overview');
     if (role === 'college') setCollegeView('overview');
@@ -558,3 +569,12 @@ export default function App() {
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+

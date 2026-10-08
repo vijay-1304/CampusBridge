@@ -14,7 +14,10 @@ import {
   Menu,
   X,
   Settings,
+  LogOut,
+  User,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -45,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDemoTour,
   onOpenAuth,
 }) => {
+  const { user, profile, isAuthenticated, logout } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -514,8 +518,23 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            {/* Auth Buttons for Public */}
-            {currentRole === 'public' ? (
+            {/* Auth Buttons / Sign Out */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-800">
+                  <User className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="max-w-[100px] truncate">{profile?.full_name || user?.email?.split('@')[0]}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Sign Out"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </div>
+            ) : currentRole === 'public' ? (
               <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <button
                   onClick={() => onOpenAuth('login')}

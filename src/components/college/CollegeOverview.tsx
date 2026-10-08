@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CollegeDetail, CollegeNavView } from '../../types';
-import { School, Building2, Users, Cpu, ArrowRight, Clock, CheckCircle2 } from 'lucide-react';
+import { School, Building2, Users, Cpu, ArrowRight, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { collegeApi, matchingApi } from '../../services/api';
 
 interface CollegeOverviewProps {
   college: CollegeDetail;
@@ -13,6 +14,36 @@ export const CollegeOverview: React.FC<CollegeOverviewProps> = ({
   pendingRequestsCount,
   onNavigate,
 }) => {
+  const [collegeName, setCollegeName] = useState(college.name);
+  const [tagline, setTagline] = useState(college.tagline);
+  const [facultyCount, setFacultyCount] = useState(college.capabilities.faculty);
+  const [capCount, setCapCount] = useState(college.capabilities.specializedLabs);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchOverviewData = async () => {
+    setIsLoading(true);
+    try {
+      const prof = await collegeApi.getProfile().catch(() => null);
+      if (prof && prof.college_name) {
+        setCollegeName(prof.college_name);
+        if (prof.location) setTagline(`Autonomous Engineering Campus · ${prof.location}`);
+      }
+
+      const caps = await collegeApi.getCapabilities().catch(() => null);
+      if (caps && Array.isArray(caps)) {
+        setCapCount(caps.length);
+        const totalFac = caps.reduce((sum: number, c: any) => sum + (c.faculty_count || 0), 0);
+        if (totalFac > 0) setFacultyCount(totalFac);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverviewData();
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-10">
       {/* 1. INSTITUTION HEADER */}
@@ -20,23 +51,32 @@ export const CollegeOverview: React.FC<CollegeOverviewProps> = ({
         <div>
           <span className="text-sm font-semibold text-amber-700">Institutional Administration</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-            {college.name}
+            {collegeName}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">{college.tagline}</p>
+          <p className="text-sm text-slate-500 mt-1">{tagline}</p>
         </div>
 
         {/* Primary CTA */}
-        <button
-          onClick={() => onNavigate('requests')}
-          className="px-5 py-2.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg shadow-sm transition-all inline-flex items-center gap-2 self-start sm:self-auto"
-        >
-          <span>View Collaboration Requests</span>
-          {pendingRequestsCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-amber-400 text-slate-950 font-bold rounded-full text-[10px]">
-              {pendingRequestsCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={fetchOverviewData}
+            title="Refresh from backend"
+            className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => onNavigate('requests')}
+            className="px-5 py-2.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg shadow-sm transition-all inline-flex items-center gap-2"
+          >
+            <span>View Collaboration Requests</span>
+            {pendingRequestsCount > 0 && (
+              <span className="px-1.5 py-0.5 bg-amber-400 text-slate-950 font-bold rounded-full text-[10px]">
+                {pendingRequestsCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* 2. CAPABILITY SUMMARY CARDS (4 Stats) */}
@@ -56,7 +96,7 @@ export const CollegeOverview: React.FC<CollegeOverviewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="text-2xl font-bold text-[#173B63] font-mono">
-              {college.capabilities.faculty}
+              {facultyCount}
             </div>
             <div className="text-xs text-slate-600 mt-1 font-medium">Faculty Mentors</div>
           </div>
@@ -68,9 +108,9 @@ export const CollegeOverview: React.FC<CollegeOverviewProps> = ({
           </div>
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="text-2xl font-bold text-[#173B63] font-mono">
-              {college.capabilities.specializedLabs}
+              {capCount}
             </div>
-            <div className="text-xs text-slate-600 mt-1 font-medium">Specialized Labs</div>
+            <div className="text-xs text-slate-600 mt-1 font-medium">Capabilities Mapped</div>
           </div>
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="text-2xl font-bold text-[#173B63] font-mono">
