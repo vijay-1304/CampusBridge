@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+from app.services.supabase_service import check_supabase_connection
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -20,12 +21,14 @@ app.add_middleware(
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Health check endpoint indicating API operational status."""
+    """Health check endpoint indicating API operational status and Supabase configuration state."""
+    supabase_status = check_supabase_connection()
     return {
         "status": "healthy",
         "service": "CampusBridge API",
         "environment": settings.ENVIRONMENT,
         "message": "CampusBridge API is running",
+        "supabase": supabase_status,
     }
 
 
