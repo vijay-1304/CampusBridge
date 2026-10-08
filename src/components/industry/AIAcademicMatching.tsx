@@ -36,7 +36,7 @@ interface AIAcademicMatchingProps {
   challenge: IndustryChallenge;
   matches: AcademicMatch[];
   onSelectCollege: (id: string) => void;
-  onOpenCollaborationRequest: (collegeName: string) => void;
+  onOpenCollaborationRequest: (collegeId: string, collegeName: string, matchScore?: number | null) => void;
   onNavigate: (view: IndustryNavView) => void;
 }
 
@@ -159,10 +159,10 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
         <h2 className="text-lg font-bold text-slate-900">{challenge.title}</h2>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
           <span className="font-semibold text-slate-800">Domain:</span>
-          <span>{challenge.domain}</span>
+          <span>{challenge.domain || 'Technology & Engineering'}</span>
           <span aria-hidden="true">·</span>
           <span className="font-semibold text-slate-800">Required Skills:</span>
-          <span>{challenge.requiredSkills.join(' · ')}</span>
+          <span>{challenge.requiredSkills?.length ? challenge.requiredSkills.join(' · ') : 'Verifiable Skills'}</span>
         </div>
       </div>
 
@@ -191,13 +191,13 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     <span>{topMatch.location}</span>
                   </span>
                   <span aria-hidden="true">·</span>
-                  <span>Autonomous Engineering Campus</span>
+                  <span>Academic Engineering Institution</span>
                 </div>
               </div>
 
               <div className="sm:text-right shrink-0 bg-white sm:bg-transparent p-4 sm:p-0 rounded-lg border sm:border-none border-slate-200">
                 <div className="text-4xl font-extrabold text-[#173B63] font-mono">
-                  {topMatch.overall_score !== null ? `${topMatch.overall_score}%` : 'Not available'}
+                  {topMatch.overall_score !== null ? `${Math.round(topMatch.overall_score)}%` : 'Not available'}
                 </div>
                 <div className="text-xs font-semibold text-blue-700">Overall Match Score</div>
                 <div className="text-[10px] text-slate-400 font-mono">Deterministic Evaluation</div>
@@ -232,7 +232,7 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     <span className="font-mono text-blue-700 font-bold">Weight: 70%</span>
                   </div>
                   <div className="text-2xl font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.skill_score !== null ? `${topMatch.skill_score}%` : 'Not available'}
+                    {topMatch.skill_score !== null ? `${Math.round(topMatch.skill_score)}%` : 'Not available'}
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1 leading-tight">
                     Weighted proficiency fit across all required skills.
@@ -246,7 +246,7 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     <span className="font-mono text-blue-700 font-bold">Weight: 30%</span>
                   </div>
                   <div className="text-2xl font-bold text-slate-900 font-mono mt-1">
-                    {topMatch.capability_score !== null ? `${topMatch.capability_score}%` : 'Not available'}
+                    {topMatch.capability_score !== null ? `${Math.round(topMatch.capability_score)}%` : 'Not available'}
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1 leading-tight">
                     Weighted proportion of required skills possessed by institution.
@@ -260,7 +260,7 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                     <span className="font-mono text-blue-700 font-bold">Formula</span>
                   </div>
                   <div className="text-2xl font-bold text-[#173B63] font-mono mt-1">
-                    {topMatch.overall_score !== null ? `${topMatch.overall_score}%` : 'Not available'}
+                    {topMatch.overall_score !== null ? `${Math.round(topMatch.overall_score)}%` : 'Not available'}
                   </div>
                   <p className="text-[10px] text-blue-700 mt-1 leading-tight">
                     (Skill × 0.70) + (Coverage × 0.30)
@@ -283,11 +283,11 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
               </button>
 
               <button
-                onClick={() => onOpenCollaborationRequest(topMatch.collegeName)}
+                onClick={() => onOpenCollaborationRequest(topMatch.id, topMatch.collegeName, topMatch.overall_score)}
                 className="px-6 py-2.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg shadow-sm transition-all inline-flex items-center justify-center gap-2"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send Collaboration Request</span>
+                <span>Request Collaboration</span>
               </button>
             </div>
           </div>
@@ -342,16 +342,16 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                         {match.reasoning}
                       </p>
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono pt-0.5">
-                        <span>Skill Fit: {match.skill_score !== null ? `${match.skill_score}%` : 'N/A'}</span>
+                        <span>Skill Fit: {match.skill_score !== null ? `${Math.round(match.skill_score)}%` : 'N/A'}</span>
                         <span aria-hidden="true">·</span>
-                        <span>Coverage: {match.capability_score !== null ? `${match.capability_score}%` : 'N/A'}</span>
+                        <span>Coverage: {match.capability_score !== null ? `${Math.round(match.capability_score)}%` : 'N/A'}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                      <div className="text-right">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <div className="text-right mr-2">
                         <div className="text-xl font-bold text-slate-800 font-mono">
-                          {match.overall_score !== null ? `${match.overall_score}%` : 'Not available'}
+                          {match.overall_score !== null ? `${Math.round(match.overall_score)}%` : 'Not available'}
                         </div>
                         <div className="text-[10px] text-slate-400">Overall Match</div>
                       </div>
@@ -361,9 +361,17 @@ export const AIAcademicMatching: React.FC<AIAcademicMatchingProps> = ({
                           onSelectCollege(match.id);
                           onNavigate('college-profile');
                         }}
-                        className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"
+                        className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"
                       >
-                        View Details
+                        Profile
+                      </button>
+
+                      <button
+                        onClick={() => onOpenCollaborationRequest(match.id, match.collegeName, match.overall_score)}
+                        className="px-4 py-2 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Request</span>
                       </button>
                     </div>
                   </div>

@@ -224,6 +224,14 @@ export const Header: React.FC<HeaderProps> = ({
                   Find Partners
                 </button>
                 <button
+                  onClick={() => onIndustryNavigate('collaboration-requests')}
+                  className={`px-3 py-1.5 text-xs xl:text-sm font-medium rounded-md transition-colors ${
+                    industryView === 'collaboration-requests' ? 'text-blue-600 bg-blue-50 font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Requests
+                </button>
+                <button
                   onClick={() => onIndustryNavigate('workspace')}
                   className={`px-3 py-1.5 text-xs xl:text-sm font-medium rounded-md transition-colors ${
                     industryView === 'workspace' ? 'text-blue-600 bg-blue-50 font-semibold' : 'text-slate-600 hover:text-slate-900'
@@ -684,6 +692,12 @@ export const Header: React.FC<HeaderProps> = ({
                   className={`w-full text-left px-3 py-2 text-sm rounded-lg ${industryView === 'ai-matching' ? 'bg-blue-50 font-bold text-blue-700' : 'text-slate-800'}`}
                 >
                   Find Academic Partners
+                </button>
+                <button
+                  onClick={() => handleMobileNav(() => onIndustryNavigate('collaboration-requests'))}
+                  className={`w-full text-left px-3 py-2 text-sm rounded-lg ${industryView === 'collaboration-requests' ? 'bg-blue-50 font-bold text-blue-700' : 'text-slate-800'}`}
+                >
+                  Collaboration Requests
                 </button>
                 <button
                   onClick={() => handleMobileNav(() => onIndustryNavigate('workspace'))}

@@ -58,6 +58,7 @@ import { AIExtractionProcessing } from './components/industry/AIExtractionProces
 import { AIAcademicMatching } from './components/industry/AIAcademicMatching';
 import { CollegeProfileView } from './components/industry/CollegeProfileView';
 import { CollaborationRequestModal } from './components/industry/CollaborationRequestModal';
+import { IndustryCollaborationRequests } from './components/industry/IndustryCollaborationRequests';
 
 // College Components
 import { CollegeOverview } from './components/college/CollegeOverview';
@@ -66,6 +67,9 @@ import { CollegeCollaborationRequests } from './components/college/CollegeCollab
 import { CollegeOpportunitiesView } from './components/college/CollegeOpportunitiesView';
 import { CollaborationWorkspaceView } from './components/college/CollaborationWorkspaceView';
 import { ProjectOutcomeView } from './components/college/ProjectOutcomeView';
+
+// Collaboration Workspace Component (Phase 10 & 11)
+import { CollaborationWorkspace as FullCollaborationWorkspace } from './components/collaboration/CollaborationWorkspace';
 
 // Admin Components
 import { AdminOverview } from './components/admin/AdminOverview';
@@ -111,7 +115,9 @@ function AppContent() {
   // Active item selections
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>('opp-1');
   const [selectedCollegeId, setSelectedCollegeId] = useState<string>('col-1');
-  const [targetCollegeName, setTargetCollegeName] = useState<string>('ABC Engineering College');
+  const [targetCollegeName, setTargetCollegeName] = useState<string>('Academic Institution');
+  const [selectedMatchScore, setSelectedMatchScore] = useState<number | null>(null);
+  const [selectedCollabId, setSelectedCollabId] = useState<string | null>(null);
 
   // Closed-loop Celebration Toast
   const [celebrationToast, setCelebrationToast] = useState<string | null>(null);
@@ -411,8 +417,10 @@ function AppContent() {
                   const matched = sampleCollegesMap[id] || sampleCollegeDetail;
                   setTargetCollegeName(matched.name);
                 }}
-                onOpenCollaborationRequest={(collegeName) => {
+                onOpenCollaborationRequest={(collegeId, collegeName, matchScore) => {
+                  setSelectedCollegeId(collegeId);
                   setTargetCollegeName(collegeName);
+                  setSelectedMatchScore(matchScore ?? null);
                   setShowCollabRequestModal(true);
                 }}
                 onNavigate={setIndustryView}
@@ -431,14 +439,21 @@ function AppContent() {
               />
             )}
 
-            {industryView === 'workspace' && (
-              <CollaborationWorkspaceView
-                workspace={workspace}
-                onNavigateToOutcome={() => {
-                  setCurrentRole('college');
-                  setCollegeView('outcome');
+            {industryView === 'collaboration-requests' && (
+              <IndustryCollaborationRequests
+                onNavigate={setIndustryView}
+                onOpenWorkspace={(id) => {
+                  if (id) setSelectedCollabId(id);
+                  setIndustryView('workspace');
                 }}
-                onNavigate={setCollegeView}
+              />
+            )}
+
+            {industryView === 'workspace' && (
+              <FullCollaborationWorkspace
+                initialCollaborationId={selectedCollabId}
+                onBack={() => setIndustryView('overview')}
+                userRole="industry"
               />
             )}
 
@@ -480,21 +495,23 @@ function AppContent() {
 
             {collegeView === 'requests' && (
               <CollegeCollaborationRequests
-                onAcceptRequest={() => {
-                  setWorkspace((prev) => ({
-                    ...prev,
-                    status: 'In Progress',
-                  }));
+                onAcceptRequest={(collabId) => {
+                  if (collabId) setSelectedCollabId(collabId);
+                  setCollegeView('workspace');
                 }}
                 onNavigate={setCollegeView}
+                onOpenWorkspace={(id) => {
+                  if (id) setSelectedCollabId(id);
+                  setCollegeView('workspace');
+                }}
               />
             )}
 
             {collegeView === 'workspace' && (
-              <CollaborationWorkspaceView
-                workspace={workspace}
-                onNavigateToOutcome={() => setCollegeView('outcome')}
-                onNavigate={setCollegeView}
+              <FullCollaborationWorkspace
+                initialCollaborationId={selectedCollabId}
+                onBack={() => setCollegeView('overview')}
+                userRole="college"
               />
             )}
 
@@ -545,13 +562,21 @@ function AppContent() {
 
       <CollaborationRequestModal
         isOpen={showCollabRequestModal}
+        challengeId={industryChallenge.id}
+        challengeTitle={industryChallenge.title}
+        collegeId={selectedCollegeId}
         collegeName={targetCollegeName}
+        matchScore={selectedMatchScore}
         onClose={() => setShowCollabRequestModal(false)}
-        onConfirmSent={() => {
+        onSuccess={() => {
           setIndustryChallenge((prev) => ({
             ...prev,
             status: 'Collaboration Active',
           }));
+        }}
+        onViewRequests={() => {
+          setShowCollabRequestModal(false);
+          setIndustryView('collaboration-requests');
         }}
       />
 

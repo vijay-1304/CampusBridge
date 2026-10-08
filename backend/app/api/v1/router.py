@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, colleges, industry, matching, students
+from app.api.v1.endpoints import auth, colleges, collaborations, industry, matching, students
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -32,4 +32,10 @@ api_router.include_router(
     matching.router,
     prefix="/matching",
     tags=["Matching Engine"],
+)
+
+api_router.include_router(
+    collaborations.router,
+    prefix="/collaborations",
+    tags=["Collaborations"],
 )

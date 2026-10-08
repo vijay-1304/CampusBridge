@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { CollegeNavView } from '../../types';
+import { IndustryNavView } from '../../types';
 import {
   Building2,
-  Check,
-  X,
+  School,
   ArrowRight,
   ArrowLeft,
   Loader2,
@@ -14,26 +13,21 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  Briefcase,
 } from 'lucide-react';
 import { collaborationApi } from '../../services/api';
 
-interface CollegeCollaborationRequestsProps {
-  onAcceptRequest?: (collaborationId?: string) => void;
-  onNavigate: (view: CollegeNavView) => void;
-  onOpenWorkspace?: (collaborationId?: string) => void;
+interface IndustryCollaborationRequestsProps {
+  onNavigate: (view: IndustryNavView) => void;
+  onOpenWorkspace: (collaborationId?: string) => void;
 }
 
-export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequestsProps> = ({
-  onAcceptRequest,
+export const IndustryCollaborationRequests: React.FC<IndustryCollaborationRequestsProps> = ({
   onNavigate,
   onOpenWorkspace,
 }) => {
   const [requests, setRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -42,7 +36,7 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
       const res = await collaborationApi.getRequests();
       setRequests(res.requests || []);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to load incoming collaboration requests.');
+      setErrorMessage(err?.message || 'Failed to load collaboration requests.');
     } finally {
       setIsLoading(false);
     }
@@ -51,39 +45,6 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
   useEffect(() => {
     fetchRequests();
   }, []);
-
-  const handleAccept = async (requestId: string) => {
-    setActionInProgressId(requestId);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    try {
-      const collab = await collaborationApi.acceptRequest(requestId);
-      setSuccessMessage('Collaboration request accepted! Collaboration workspace initialized.');
-      await fetchRequests();
-      if (onAcceptRequest) {
-        onAcceptRequest(collab?.id);
-      }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to accept collaboration request.');
-    } finally {
-      setActionInProgressId(null);
-    }
-  };
-
-  const handleReject = async (requestId: string) => {
-    setActionInProgressId(requestId);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    try {
-      await collaborationApi.rejectRequest(requestId);
-      setSuccessMessage('Collaboration request has been declined.');
-      await fetchRequests();
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to decline collaboration request.');
-    } finally {
-      setActionInProgressId(null);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -106,7 +67,7 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-semibold">
             <Clock className="w-3.5 h-3.5 text-amber-600" />
-            <span>Pending Your Action</span>
+            <span>Pending Academic Review</span>
           </span>
         );
     }
@@ -121,7 +82,7 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors py-1 px-2.5 -ml-2.5 rounded-lg hover:bg-slate-100"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to College Overview</span>
+          <span>Back to Industry Dashboard</span>
         </button>
 
         <button
@@ -137,14 +98,14 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
       {/* HEADER */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Incoming Collaboration Requests
+          Outgoing Collaboration Requests
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Review formal enterprise partnership proposals evaluated and matched to your faculty capabilities.
+          Track real-world collaboration proposals dispatched to evaluated academic institutions.
         </p>
       </div>
 
-      {/* ALERTS */}
+      {/* ERROR BANNER */}
       {errorMessage && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-xs text-rose-800">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -152,18 +113,11 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
         </div>
       )}
 
-      {successMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 text-xs text-emerald-800">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-          <div>{successMessage}</div>
-        </div>
-      )}
-
       {/* CONTENT */}
       {isLoading ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-          <div className="text-sm font-semibold text-slate-800">Loading incoming proposals...</div>
+          <div className="text-sm font-semibold text-slate-800">Loading collaboration proposals...</div>
         </div>
       ) : requests.length > 0 ? (
         <div className="space-y-4">
@@ -176,8 +130,8 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span className="font-semibold text-slate-900 flex items-center gap-1">
-                      <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                      {req.company_name || 'Enterprise Sponsor'}
+                      <School className="w-3.5 h-3.5 text-blue-600" />
+                      {req.college_name || 'Academic Institution'}
                     </span>
                     <span aria-hidden="true">·</span>
                     <span className="flex items-center gap-1 text-[11px]">
@@ -186,7 +140,7 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    {req.challenge_title || 'Industry Challenge'}
+                    {req.challenge_title || 'Industry Challenge Project'}
                   </h3>
                 </div>
 
@@ -203,7 +157,7 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
                 </div>
               </div>
 
-              {/* MESSAGE DETAILS */}
+              {/* MESSAGE / PROPOSAL DETAILS */}
               {req.message && (
                 <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-700 flex items-start gap-2">
                   <MessageSquare className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
@@ -211,52 +165,25 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
                 </div>
               )}
 
-              {/* ACTION BUTTONS */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              {/* STATUS SPECIFIC ACTION */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                 <span className="text-[11px] text-slate-400">
                   {req.responded_at
-                    ? `Action taken on ${new Date(req.responded_at).toLocaleDateString()}`
-                    : 'Awaiting your acceptance'}
+                    ? `Responded on ${new Date(req.responded_at).toLocaleDateString()}`
+                    : 'Awaiting institution response'}
                 </span>
 
-                <div className="flex items-center gap-2">
-                  {req.status === 'pending' ? (
-                    <>
-                      <button
-                        onClick={() => handleReject(req.id)}
-                        disabled={actionInProgressId === req.id}
-                        className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50 inline-flex items-center gap-1"
-                      >
-                        <X className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Decline</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleAccept(req.id)}
-                        disabled={actionInProgressId === req.id}
-                        className="px-4 py-1.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 shadow-2xs"
-                      >
-                        {actionInProgressId === req.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        )}
-                        <span>Accept &amp; Initialize Collaboration</span>
-                      </button>
-                    </>
-                  ) : req.status === 'accepted' ? (
-                    <button
-                      onClick={() => {
-                        if (onOpenWorkspace) onOpenWorkspace();
-                        else onNavigate('workspace');
-                      }}
-                      className="px-4 py-1.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <span>Open Workspace</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  ) : null}
-                </div>
+                {req.status === 'accepted' ? (
+                  <button
+                    onClick={() => onOpenWorkspace()}
+                    className="px-4 py-1.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span>Open Workspace</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="text-slate-400 font-medium">Request Active</span>
+                )}
               </div>
             </div>
           ))}
@@ -265,19 +192,19 @@ export const CollegeCollaborationRequests: React.FC<CollegeCollaborationRequests
         /* HONEST EMPTY STATE */
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
           <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
-            <School className="w-6 h-6" />
+            <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">No incoming collaboration requests</h3>
+            <h3 className="text-base font-bold text-slate-900">No collaboration requests yet</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-              As industry partners publish challenges matching your institution's verified capability profile, incoming collaboration proposals will appear here.
+              You haven't initiated any collaboration requests yet. Find academic partners evaluated for your challenges and send partnership proposals.
             </p>
           </div>
           <button
-            onClick={() => onNavigate('profile')}
+            onClick={() => onNavigate('post-challenge')}
             className="px-5 py-2.5 text-xs font-semibold text-white bg-[#173B63] hover:bg-[#122e4e] rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs"
           >
-            <span>Manage Institutional Capabilities</span>
+            <span>View Challenges &amp; Find Partners</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

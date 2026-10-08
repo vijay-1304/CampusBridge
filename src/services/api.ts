@@ -306,3 +306,152 @@ export const matchingApi = {
 
   getMyCollegeMatches: () => request<any>('/api/v1/matching/college/me', { method: 'GET' }),
 };
+
+// -----------------------------------------------------------------------------
+// 6. Collaboration APIs (Phase 10 & 11)
+// -----------------------------------------------------------------------------
+export interface CollaborationRequestPayload {
+  challenge_id: string;
+  college_id: string;
+  message?: string;
+}
+
+export interface MilestonePayload {
+  title: string;
+  description?: string;
+  assigned_to?: string;
+  due_date?: string;
+  status?: string;
+  progress?: number;
+}
+
+export interface ProjectUpdatePayload {
+  content: string;
+  milestone_id?: string;
+  progress?: number;
+}
+
+export interface ProjectOutcomePayload {
+  title: string;
+  summary?: string;
+  repository_url?: string;
+  demo_url?: string;
+  documentation_url?: string;
+  technologies?: any;
+  outcome_status?: string;
+}
+
+export const collaborationApi = {
+  // Requests
+  createRequest: (payload: CollaborationRequestPayload) =>
+    request<any>('/api/v1/collaborations/requests', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getRequests: (params?: { status?: string; challenge_id?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.challenge_id) query.set('challenge_id', params.challenge_id);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<{ total: number; requests: any[] }>(`/api/v1/collaborations/requests${qs}`, {
+      method: 'GET',
+    });
+  },
+
+  getRequest: (requestId: string) =>
+    request<any>(`/api/v1/collaborations/requests/${encodeURIComponent(requestId)}`, {
+      method: 'GET',
+    }),
+
+  acceptRequest: (requestId: string) =>
+    request<any>(`/api/v1/collaborations/requests/${encodeURIComponent(requestId)}/accept`, {
+      method: 'PATCH',
+    }),
+
+  rejectRequest: (requestId: string) =>
+    request<any>(`/api/v1/collaborations/requests/${encodeURIComponent(requestId)}/reject`, {
+      method: 'PATCH',
+    }),
+
+  // Collaborations Workspace
+  getCollaborations: (status?: string) => {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+    return request<{ total: number; collaborations: any[] }>(`/api/v1/collaborations${qs}`, {
+      method: 'GET',
+    });
+  },
+
+  getCollaboration: (collaborationId: string) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}`, {
+      method: 'GET',
+    }),
+
+  updateCollaboration: (
+    collaborationId: string,
+    payload: {
+      title?: string;
+      description?: string;
+      status?: string;
+      end_date?: string;
+    }
+  ) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  // Milestones
+  getMilestones: (collaborationId: string) =>
+    request<any[]>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/milestones`, {
+      method: 'GET',
+    }),
+
+  createMilestone: (collaborationId: string, payload: MilestonePayload) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/milestones`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateMilestone: (collaborationId: string, milestoneId: string, payload: Partial<MilestonePayload>) =>
+    request<any>(
+      `/api/v1/collaborations/${encodeURIComponent(collaborationId)}/milestones/${encodeURIComponent(milestoneId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }
+    ),
+
+  deleteMilestone: (collaborationId: string, milestoneId: string) =>
+    request<{ status: string; message: string }>(
+      `/api/v1/collaborations/${encodeURIComponent(collaborationId)}/milestones/${encodeURIComponent(milestoneId)}`,
+      {
+        method: 'DELETE',
+      }
+    ),
+
+  // Project Updates
+  getUpdates: (collaborationId: string) =>
+    request<any[]>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/updates`, {
+      method: 'GET',
+    }),
+
+  createUpdate: (collaborationId: string, payload: ProjectUpdatePayload) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/updates`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // Project Outcomes
+  getOutcome: (collaborationId: string) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/outcome`, {
+      method: 'GET',
+    }),
+
+  saveOutcome: (collaborationId: string, payload: ProjectOutcomePayload) =>
+    request<any>(`/api/v1/collaborations/${encodeURIComponent(collaborationId)}/outcome`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+};
+

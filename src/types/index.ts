@@ -21,6 +21,7 @@ export type IndustryNavView =
   | 'ai-matching'
   | 'college-profile'
   | 'collaboration-request'
+  | 'collaboration-requests'
   | 'workspace'
   | 'settings';
 
