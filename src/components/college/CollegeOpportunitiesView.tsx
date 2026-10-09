@@ -97,31 +97,30 @@ export const CollegeOpportunitiesView: React.FC<CollegeOpportunitiesViewProps> =
                 <span>{opp.type}</span>
                 <span aria-hidden="true">·</span>
                 <span>{opp.duration}</span>
-                <span aria-hidden="true">·</span>
-                <span>{opp.stipend}</span>
+                {opp.stipend && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{opp.stipend}</span>
+                  </>
+                )}
               </div>
 
               <h2 className="text-base sm:text-lg font-bold text-slate-900">{opp.title}</h2>
               <p className="text-xs text-slate-600 line-clamp-2 max-w-xl">{opp.description}</p>
 
-              <div className="pt-1 flex items-center gap-2 text-xs text-slate-500">
-                <span className="font-medium text-slate-700">Target Skills:</span>
-                <span>{opp.requiredSkills.join(' · ')}</span>
-              </div>
+              {opp.requiredSkills && opp.requiredSkills.length > 0 && (
+                <div className="pt-1 flex items-center gap-2 text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">Target Skills:</span>
+                  <span>{opp.requiredSkills.join(' · ')}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:items-end justify-between gap-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-              <div className="sm:text-right">
-                <span className="text-xs font-semibold text-blue-700 font-mono">
-                  12 eligible students
-                </span>
-                <div className="text-[10px] text-slate-400">e.g. Vijay Bhosale (91% match)</div>
-              </div>
-
               {nominatedMap[opp.id] ? (
                 <div className="px-3.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg inline-flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Student Batch Nominated</span>
+                  <span>Department Students Nominated</span>
                 </div>
               ) : (
                 <button
@@ -135,6 +134,15 @@ export const CollegeOpportunitiesView: React.FC<CollegeOpportunitiesViewProps> =
             </div>
           </div>
         ))}
+
+        {filtered.length === 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-xs shadow-xs">
+            <p className="text-slate-700 font-medium">No industry opportunities currently open for academic nomination.</p>
+            <p className="text-slate-400 mt-1">
+              New industry challenges and hiring drives will be displayed here as they are published.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -53,11 +53,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const notifications = [
-    { id: 1, title: 'AI Match Calculated', text: 'ABC Technologies matched 91% with your profile.', time: '10m ago' },
-    { id: 2, title: 'Milestone Update', text: 'Dr. Nair approved Milestone 3 dataset deliverables.', time: '2h ago' },
-  ];
-
   const handleMobileNav = (action: () => void) => {
     action();
     setMobileMenuOpen(false);
@@ -438,7 +433,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <GraduationCap className="w-4 h-4 text-blue-600" />
                     <div>
                       <div className="font-medium">Student Experience</div>
-                      <div className="text-[11px] text-slate-400">Vijay Bhosale (B.Tech CS)</div>
+                      <div className="text-[11px] text-slate-400">Skills, Passport &amp; Opportunities</div>
                     </div>
                   </button>
                   <button
@@ -450,7 +445,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <Building2 className="w-4 h-4 text-emerald-600" />
                     <div>
                       <div className="font-medium">Industry Experience</div>
-                      <div className="text-[11px] text-slate-400">ABC Technologies</div>
+                      <div className="text-[11px] text-slate-400">Challenges &amp; Academic Matching</div>
                     </div>
                   </button>
                   <button
@@ -462,7 +457,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <School className="w-4 h-4 text-amber-600" />
                     <div>
                       <div className="font-medium">College Experience</div>
-                      <div className="text-[11px] text-slate-400">ABC Engineering College</div>
+                      <div className="text-[11px] text-slate-400">Capabilities &amp; Collaborations</div>
                     </div>
                   </button>
                   <button
@@ -474,7 +469,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <Shield className="w-4 h-4 text-slate-600" />
                     <div>
                       <div className="font-medium">Admin Experience</div>
-                      <div className="text-[11px] text-slate-400">Moderation &amp; System Health</div>
+                      <div className="text-[11px] text-slate-400">Governance &amp; System Health</div>
                     </div>
                   </button>
                   <div className="border-t border-slate-100 my-1"></div>
@@ -510,17 +505,10 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-xl border border-slate-200 py-2 z-50">
                     <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-800">Notifications</span>
-                      <span className="text-[10px] text-blue-600 cursor-pointer">Mark all read</span>
                     </div>
-                    {notifications.map((n) => (
-                      <div key={n.id} className="px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-none">
-                        <div className="flex items-center justify-between text-xs font-semibold text-slate-900">
-                          <span>{n.title}</span>
-                          <span className="text-[10px] text-slate-400 font-normal">{n.time}</span>
-                        </div>
-                        <p className="text-xs text-slate-600 mt-0.5 leading-snug">{n.text}</p>
-                      </div>
-                    ))}
+                    <div className="px-4 py-6 text-center text-xs text-slate-500">
+                      No new notifications at this time.
+                    </div>
                   </div>
                 )}
               </div>

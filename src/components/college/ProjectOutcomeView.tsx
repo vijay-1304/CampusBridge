@@ -190,12 +190,12 @@ export const ProjectOutcomeView: React.FC<ProjectOutcomeViewProps> = ({
             <div className="flex items-center justify-between font-semibold text-slate-900">
               <span className="flex items-center gap-1.5 text-emerald-900">
                 <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Vijay Bhosale (Student ML Lead)</span>
+                <span>Student ML Team Lead</span>
               </span>
               <span className="text-emerald-700 text-xs">Skill Gap Closed</span>
             </div>
             <p className="text-slate-600 leading-relaxed italic">
-              "Before this collaboration, Computer Vision was an identified skill gap in my profile. Building and running edge pipelines in the collaborative workspace transformed my practical ability."
+              "Before this collaboration, edge computing was an identified gap in our profile. Building and running pipelines in the collaborative workspace transformed our practical capability."
             </p>
           </div>
         </div>
@@ -210,7 +210,7 @@ export const ProjectOutcomeView: React.FC<ProjectOutcomeViewProps> = ({
           </div>
           <h3 className="text-xl font-bold">Update Student Skill Passport</h3>
           <p className="text-xs text-blue-100 mt-1 max-w-xl leading-relaxed">
-            Record project evidence for Computer Vision &amp; OpenCV on Vijay Bhosale's profile, elevating his passport completion to 96% and unlocking advanced industry opportunities.
+            Record verified project deliverables directly onto participating student profiles, elevating their verified competencies.
           </p>
         </div>
 

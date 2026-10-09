@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   UserRole,
   StudentNavView,
@@ -16,19 +16,17 @@ import {
   IndustryChallenge,
   AcademicMatch,
   CollegeDetail,
-  CollaborationWorkspace,
   SkillItem,
 } from './types';
+
+// Services
 import {
-  initialStudentProfile,
-  sampleOpportunities,
-  initialApplications,
-  initialIndustryChallenge,
-  academicMatchesData,
-  sampleCollegeDetail,
-  sampleCollegesMap,
-  sampleWorkspace,
-} from './data/mockData';
+  studentApi,
+  industryApi,
+  collegeApi,
+  matchingApi,
+  collaborationApi,
+} from './services/api';
 
 // Shared Components
 import { Header } from './components/Header';
@@ -65,16 +63,52 @@ import { CollegeOverview } from './components/college/CollegeOverview';
 import { CollegeProfileManagement } from './components/college/CollegeProfileManagement';
 import { CollegeCollaborationRequests } from './components/college/CollegeCollaborationRequests';
 import { CollegeOpportunitiesView } from './components/college/CollegeOpportunitiesView';
-import { CollaborationWorkspaceView } from './components/college/CollaborationWorkspaceView';
 import { ProjectOutcomeView } from './components/college/ProjectOutcomeView';
 
-// Collaboration Workspace Component (Phase 10 & 11)
+// Collaboration Workspace Component
 import { CollaborationWorkspace as FullCollaborationWorkspace } from './components/collaboration/CollaborationWorkspace';
 
 // Admin Components
 import { AdminOverview } from './components/admin/AdminOverview';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const emptyStudentProfile: StudentProfile = {
+  name: '',
+  title: 'Student',
+  institution: '',
+  degree: '',
+  branch: '',
+  location: '',
+  about: '',
+  profileCompletion: 0,
+  targetRole: '',
+  skills: [],
+  strengths: [],
+  developing: [],
+  recommendedSkills: [],
+  projects: [],
+  certifications: [],
+  achievements: [],
+};
+
+const emptyCollegeDetail: CollegeDetail = {
+  id: '',
+  name: '',
+  tagline: '',
+  location: '',
+  website: '',
+  about: '',
+  capabilities: {
+    faculty: 0,
+    students: 0,
+    specializedLabs: 0,
+    relevantProjects: 0,
+  },
+  areasOfExpertise: [],
+  facilities: [],
+  industryCollaborationsCompleted: 0,
+};
 
 function AppContent() {
   const { role: authRole, profile: authProfile, isAuthenticated, setRoleOverride } = useAuth();
@@ -86,12 +120,9 @@ function AppContent() {
   const [collegeView, setCollegeView] = useState<CollegeNavView>('overview');
   const [adminView, setAdminView] = useState<AdminNavView>('overview');
 
-  // Sync role with auth session
-  useEffect(() => {
-    if (isAuthenticated && authRole) {
-      setCurrentRole(authRole);
-    }
-  }, [authRole, isAuthenticated]);
+  // Loading & Error States
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Modals State
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -103,18 +134,28 @@ function AppContent() {
   const [showCollabRequestModal, setShowCollabRequestModal] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
 
-  // Data States
-  const [studentProfile, setStudentProfile] = useState<StudentProfile>(initialStudentProfile);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(sampleOpportunities);
-  const [applications, setApplications] = useState<ApplicationItem[]>(initialApplications);
-  const [industryChallenge, setIndustryChallenge] = useState<IndustryChallenge>(initialIndustryChallenge);
-  const [academicMatches, setAcademicMatches] = useState<AcademicMatch[]>(academicMatchesData);
-  const [collegeDetail] = useState<CollegeDetail>(sampleCollegeDetail);
-  const [workspace, setWorkspace] = useState<CollaborationWorkspace>(sampleWorkspace);
+  // Authenticated Data States
+  const [studentProfile, setStudentProfile] = useState<StudentProfile>(emptyStudentProfile);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [industryChallenge, setIndustryChallenge] = useState<IndustryChallenge>({
+    id: '',
+    title: '',
+    company: '',
+    department: '',
+    domain: '',
+    collaborationType: '',
+    description: '',
+    status: 'Draft',
+    requiredSkills: [],
+    academicMatchesCount: 0,
+  });
+  const [academicMatches, setAcademicMatches] = useState<AcademicMatch[]>([]);
+  const [collegeDetail, setCollegeDetail] = useState<CollegeDetail>(emptyCollegeDetail);
 
   // Active item selections
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>('opp-1');
-  const [selectedCollegeId, setSelectedCollegeId] = useState<string>('col-1');
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>('');
+  const [selectedCollegeId, setSelectedCollegeId] = useState<string>('');
   const [targetCollegeName, setTargetCollegeName] = useState<string>('Academic Institution');
   const [selectedMatchScore, setSelectedMatchScore] = useState<number | null>(null);
   const [selectedCollabId, setSelectedCollabId] = useState<string | null>(null);
@@ -122,14 +163,192 @@ function AppContent() {
   // Closed-loop Celebration Toast
   const [celebrationToast, setCelebrationToast] = useState<string | null>(null);
 
+  // Fetch real data for student from FastAPI backend
+  const fetchStudentData = useCallback(async () => {
+    setIsLoadingData(true);
+    setFetchError(null);
+    try {
+      const [profileRes, skillsRes] = await Promise.all([
+        studentApi.getProfile().catch(() => null),
+        studentApi.getSkills().catch(() => []),
+      ]);
+
+      const mappedSkills: SkillItem[] = (skillsRes || []).map((s: any) => ({
+        id: s.id || s.skill_id,
+        name: s.skill_name || s.skill?.name || 'Skill',
+        category: s.category || s.skill?.category || 'Technical',
+        proficiency:
+          s.proficiency_level >= 4
+            ? 'Advanced'
+            : s.proficiency_level === 3
+            ? 'Intermediate'
+            : 'Beginner',
+        verified: !!s.is_verified,
+      }));
+
+      const strengths = mappedSkills
+        .filter((s) => s.proficiency === 'Advanced')
+        .map((s) => s.name);
+
+      const developing = mappedSkills
+        .filter((s) => s.proficiency === 'Beginner' || s.proficiency === 'Intermediate')
+        .map((s) => s.name);
+
+      // Compute profile completion score
+      let completionScore = 30;
+      if (profileRes?.course || profileRes?.degree) completionScore += 15;
+      if (profileRes?.target_role) completionScore += 15;
+      if (profileRes?.bio || profileRes?.about) completionScore += 15;
+      if (mappedSkills.length > 0) {
+        completionScore += Math.min(25, mappedSkills.length * 5);
+      }
+
+      setStudentProfile({
+        name: profileRes?.full_name || authProfile?.full_name || 'Student',
+        title: profileRes?.target_role || profileRes?.course || 'Student',
+        institution: profileRes?.college_name || 'Academic Institution',
+        degree: profileRes?.course || '',
+        branch: profileRes?.branch || '',
+        location: profileRes?.location || '',
+        about: profileRes?.bio || '',
+        profileCompletion: Math.min(100, completionScore),
+        targetRole: profileRes?.target_role || '',
+        skills: mappedSkills,
+        strengths,
+        developing,
+        recommendedSkills: [],
+        projects: [],
+        certifications: [],
+        achievements: [],
+      });
+    } catch (err: any) {
+      setFetchError(err?.message || 'Failed to retrieve authenticated student record.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [authProfile]);
+
+  // Fetch real data for industry from FastAPI backend
+  const fetchIndustryData = useCallback(async () => {
+    setIsLoadingData(true);
+    setFetchError(null);
+    try {
+      const [profRes, challengesRes] = await Promise.all([
+        industryApi.getProfile().catch(() => null),
+        industryApi.getChallenges().catch(() => []),
+      ]);
+
+      if (challengesRes && challengesRes.length > 0) {
+        const firstChal = challengesRes[0];
+        const reqSkills = (firstChal.requirements || []).map(
+          (r: any) => r.skill?.name || r.extracted_skill_name
+        );
+
+        setIndustryChallenge({
+          id: firstChal.id,
+          title: firstChal.title,
+          company: profRes?.company_name || profRes?.full_name || 'Enterprise Partner',
+          department: firstChal.domain || 'Engineering',
+          domain: firstChal.domain || 'Engineering',
+          collaborationType: firstChal.collaboration_type || 'Academic Collaboration',
+          description: firstChal.description,
+          status: firstChal.status || 'Active',
+          requiredSkills: reqSkills,
+          academicMatchesCount: firstChal.is_analyzed ? 1 : 0,
+        });
+      } else {
+        setIndustryChallenge({
+          id: '',
+          title: '',
+          company: profRes?.company_name || profRes?.full_name || 'Enterprise Partner',
+          department: '',
+          domain: '',
+          collaborationType: '',
+          description: '',
+          status: 'Draft',
+          requiredSkills: [],
+          academicMatchesCount: 0,
+        });
+      }
+    } catch (err: any) {
+      setFetchError(err?.message || 'Failed to retrieve industry profile and challenges.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, []);
+
+  // Fetch real data for college from FastAPI backend
+  const fetchCollegeData = useCallback(async () => {
+    setIsLoadingData(true);
+    setFetchError(null);
+    try {
+      const [profRes, capsRes] = await Promise.all([
+        collegeApi.getProfile().catch(() => null),
+        collegeApi.getCapabilities().catch(() => []),
+      ]);
+
+      const totalFaculty = (capsRes || []).reduce(
+        (sum: number, c: any) => sum + (c.faculty_count || 0),
+        0
+      );
+
+      setCollegeDetail({
+        id: profRes?.id || '',
+        name: profRes?.college_name || profRes?.full_name || 'Academic Institution',
+        tagline: profRes?.location ? `Autonomous Campus · ${profRes.location}` : '',
+        location: profRes?.location || '',
+        website: profRes?.website || '',
+        about: profRes?.description || '',
+        capabilities: {
+          faculty: totalFaculty,
+          students: 0,
+          specializedLabs: (capsRes || []).length,
+          relevantProjects: 0,
+        },
+        areasOfExpertise: (capsRes || []).map((c: any) => c.skill?.name || c.skill_name || 'Capability'),
+        facilities: [],
+        industryCollaborationsCompleted: 0,
+      });
+    } catch (err: any) {
+      setFetchError(err?.message || 'Failed to retrieve college profile and capabilities.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, []);
+
+  // Sync role and load appropriate backend data when authenticated
+  useEffect(() => {
+    if (isAuthenticated && authRole) {
+      setCurrentRole(authRole);
+      if (authRole === 'student') {
+        fetchStudentData();
+      } else if (authRole === 'industry') {
+        fetchIndustryData();
+      } else if (authRole === 'college') {
+        fetchCollegeData();
+      }
+    }
+  }, [authRole, isAuthenticated, fetchStudentData, fetchIndustryData, fetchCollegeData]);
+
   // Navigation handlers
   const handleSelectRole = (role: UserRole) => {
     setCurrentRole(role);
     setRoleOverride(role);
-    if (role === 'student') setStudentView('home');
-    if (role === 'industry') setIndustryView('overview');
-    if (role === 'college') setCollegeView('overview');
-    if (role === 'admin') setAdminView('overview');
+    if (role === 'student') {
+      setStudentView('home');
+      if (isAuthenticated) fetchStudentData();
+    }
+    if (role === 'industry') {
+      setIndustryView('overview');
+      if (isAuthenticated) fetchIndustryData();
+    }
+    if (role === 'college') {
+      setCollegeView('overview');
+      if (isAuthenticated) fetchCollegeData();
+    }
+    if (role === 'admin') {
+      setAdminView('overview');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -143,101 +362,44 @@ function AppContent() {
         company: opp.company,
         type: opp.type,
         appliedDate: 'Just now',
-        status: 'Under Review',
-        feedback: 'Profile matched 91% illustrative score. Reviewing technical project artifacts.',
+        status: 'Applied',
+        feedback: 'Application submitted successfully. Reviewing candidate credentials.',
       };
       setApplications([newApp, ...applications]);
+      setCelebrationToast(`🎉 Applied to "${opp.title}" at ${opp.company}!`);
+      setTimeout(() => setCelebrationToast(null), 4000);
     }
   };
 
-  const handleAddSkill = (newSkill: SkillItem) => {
-    setStudentProfile((prev) => {
-      const exists = prev.skills.some((s) => s.name.toLowerCase() === newSkill.name.toLowerCase());
-      if (exists) return prev;
-      return {
-        ...prev,
-        skills: [newSkill, ...prev.skills],
-        profileCompletion: Math.min(100, prev.profileCompletion + 3),
-        strengths:
-          newSkill.proficiency === 'Advanced'
-            ? [...prev.strengths, newSkill.name]
-            : prev.strengths,
-      };
-    });
-    setCelebrationToast(`✨ Added "${newSkill.name}" to your technical skill inventory!`);
+  const handleAddSkill = async (newSkill: SkillItem) => {
+    await fetchStudentData();
+    setCelebrationToast(`✨ Added "${newSkill.name}" to your verified skills!`);
     setTimeout(() => setCelebrationToast(null), 4000);
   };
 
   const handleResetDemoData = () => {
-    setStudentProfile(initialStudentProfile);
-    setOpportunities(sampleOpportunities);
-    setApplications(initialApplications);
-    setIndustryChallenge(initialIndustryChallenge);
-    setWorkspace(sampleWorkspace);
-    setSelectedCollegeId('col-1');
-    setCelebrationToast('🔄 Demo environment successfully reset to initial baseline values.');
+    if (isAuthenticated) {
+      if (currentRole === 'student') fetchStudentData();
+      if (currentRole === 'industry') fetchIndustryData();
+      if (currentRole === 'college') fetchCollegeData();
+    }
+    setCelebrationToast('🔄 Workspace refreshed with real database state.');
     setTimeout(() => setCelebrationToast(null), 4000);
   };
 
-  // Complete the Loop Handler: updates Vijay's profile with verified CV skills from project outcome
   const handleCompleteTheLoop = () => {
-    setStudentProfile((prev) => {
-      const updatedSkills = [...prev.skills];
-      const cvIdx = updatedSkills.findIndex((s) => s.name === 'Computer Vision');
-      if (cvIdx >= 0) {
-        updatedSkills[cvIdx] = {
-          ...updatedSkills[cvIdx],
-          proficiency: 'Advanced',
-          verified: true,
-        };
-      } else {
-        updatedSkills.push({
-          id: 'cv-new',
-          name: 'Computer Vision',
-          category: 'AI / Machine Learning',
-          proficiency: 'Advanced',
-          verified: true,
-        });
-      }
-
-      if (!updatedSkills.some((s) => s.name === 'OpenCV')) {
-        updatedSkills.push({
-          id: 'cv-opencv',
-          name: 'OpenCV',
-          category: 'AI / Machine Learning',
-          proficiency: 'Advanced',
-          verified: true,
-        });
-      }
-
-      return {
-        ...prev,
-        skills: updatedSkills,
-        profileCompletion: 96,
-        strengths: ['Python', 'JavaScript', 'React', 'SQL', 'Computer Vision', 'OpenCV'],
-        developing: ['Machine Learning', 'FastAPI'],
-        achievements: [
-          'Certified Lead ML Engineer on ABC Technologies Defect Inspection Deployment',
-          ...prev.achievements,
-        ],
-      };
-    });
-
-    // Switch persona to Student Profile to show the verified impact
+    if (currentRole === 'student') {
+      fetchStudentData();
+    }
     setCurrentRole('student');
     setStudentView('profile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    setCelebrationToast(
-      '🎉 Closed Loop Complete: Computer Vision & OpenCV verified on Vijay Bhosale’s profile from completed ABC Technologies collaboration!'
-    );
-    setTimeout(() => {
-      setCelebrationToast(null);
-    }, 7000);
+    setCelebrationToast('🎉 Collaboration milestone completed! Skill Passport updated.');
+    setTimeout(() => setCelebrationToast(null), 6000);
   };
 
   const currentOpportunity =
-    opportunities.find((o) => o.id === selectedOpportunityId) || opportunities[0];
+    opportunities.find((o) => o.id === selectedOpportunityId) || opportunities[0] || null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans">
@@ -282,6 +444,28 @@ function AppContent() {
         onOpenAuth={(mode) => setAuthModalConfig({ isOpen: true, mode })}
       />
 
+      {/* ERROR BANNER IF FETCH FAILED */}
+      {fetchError && (
+        <div className="bg-rose-50 border-b border-rose-200 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 text-xs text-rose-800">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{fetchError}</span>
+            </div>
+            <button
+              onClick={() => {
+                if (currentRole === 'student') fetchStudentData();
+                if (currentRole === 'industry') fetchIndustryData();
+                if (currentRole === 'college') fetchCollegeData();
+              }}
+              className="px-2.5 py-1 bg-white border border-rose-300 text-rose-900 rounded font-semibold hover:bg-rose-100 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MAIN VIEWPORT */}
       <main className="flex-1">
         {/* PUBLIC EXPERIENCE */}
@@ -298,7 +482,7 @@ function AppContent() {
             {studentView === 'home' && (
               <StudentHome
                 profile={studentProfile}
-                recommendedOpportunity={opportunities[0]}
+                recommendedOpportunity={opportunities.length > 0 ? opportunities[0] : null}
                 onNavigate={(view) => {
                   if (view === 'edit-profile') {
                     setShowEditProfileModal(true);
@@ -329,14 +513,13 @@ function AppContent() {
 
             {studentView === 'skills' && (
               <MySkills
-                profile={studentProfile}
                 onNavigate={setStudentView}
-                onAddSkill={handleAddSkill}
+                onSkillChanged={fetchStudentData}
               />
             )}
 
             {studentView === 'skill-passport' && (
-              <SkillPassport profile={studentProfile} onNavigate={setStudentView} />
+              <SkillPassport onNavigate={setStudentView} />
             )}
 
             {studentView === 'skill-analysis' && (
@@ -355,7 +538,7 @@ function AppContent() {
               />
             )}
 
-            {studentView === 'opportunity-detail' && (
+            {studentView === 'opportunity-detail' && currentOpportunity && (
               <OpportunityDetail
                 opportunity={currentOpportunity}
                 onBack={() => setStudentView('opportunities')}
@@ -389,33 +572,35 @@ function AppContent() {
           <>
             {industryView === 'overview' && (
               <IndustryOverview
-                challenge={industryChallenge}
+                challenge={industryChallenge.id ? industryChallenge : undefined}
                 onNavigate={setIndustryView}
               />
             )}
 
             {industryView === 'post-challenge' && (
               <PostChallengeWizard
-                onPublish={(newChal) => setIndustryChallenge(newChal)}
+                onPublish={(newChal) => {
+                  setIndustryChallenge(newChal);
+                  fetchIndustryData();
+                }}
                 onNavigate={setIndustryView}
               />
             )}
 
             {industryView === 'ai-extraction' && (
               <AIExtractionProcessing
-                onComplete={() => {}}
+                onComplete={() => fetchIndustryData()}
                 onNavigate={setIndustryView}
               />
             )}
 
             {industryView === 'ai-matching' && (
               <AIAcademicMatching
-                challenge={industryChallenge}
+                challenge={industryChallenge.id ? industryChallenge : null}
                 matches={academicMatches}
                 onSelectCollege={(id) => {
                   setSelectedCollegeId(id);
-                  const matched = sampleCollegesMap[id] || sampleCollegeDetail;
-                  setTargetCollegeName(matched.name);
+                  setTargetCollegeName('Academic Institution');
                 }}
                 onOpenCollaborationRequest={(collegeId, collegeName, matchScore) => {
                   setSelectedCollegeId(collegeId);
@@ -429,7 +614,7 @@ function AppContent() {
 
             {industryView === 'college-profile' && (
               <CollegeProfileView
-                college={sampleCollegesMap[selectedCollegeId] || collegeDetail}
+                college={collegeDetail}
                 onBack={() => setIndustryView('ai-matching')}
                 onOpenCollaborationRequest={(name) => {
                   setTargetCollegeName(name);
@@ -474,7 +659,6 @@ function AppContent() {
             {collegeView === 'overview' && (
               <CollegeOverview
                 college={collegeDetail}
-                pendingRequestsCount={1}
                 onNavigate={setCollegeView}
               />
             )}
@@ -557,7 +741,10 @@ function AppContent() {
         isOpen={showEditProfileModal}
         profile={studentProfile}
         onClose={() => setShowEditProfileModal(false)}
-        onSave={(updated) => setStudentProfile(updated)}
+        onSave={(updated) => {
+          setStudentProfile(updated);
+          fetchStudentData();
+        }}
       />
 
       <CollaborationRequestModal
@@ -573,6 +760,7 @@ function AppContent() {
             ...prev,
             status: 'Collaboration Active',
           }));
+          fetchIndustryData();
         }}
         onViewRequests={() => {
           setShowCollabRequestModal(false);
@@ -584,7 +772,7 @@ function AppContent() {
         isOpen={showDemoTour}
         onClose={() => setShowDemoTour(false)}
         onJumpToStep={(role, sView, iView, cView) => {
-          setCurrentRole(role);
+          handleSelectRole(role);
           if (sView) setStudentView(sView);
           if (iView) setIndustryView(iView);
           if (cView) setCollegeView(cView);
@@ -602,4 +790,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

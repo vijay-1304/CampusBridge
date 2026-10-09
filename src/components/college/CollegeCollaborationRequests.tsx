@@ -15,6 +15,7 @@ import {
   Clock,
   XCircle,
   Briefcase,
+  School,
 } from 'lucide-react';
 import { collaborationApi } from '../../services/api';
 

@@ -313,11 +313,15 @@ export const CollegeProfileManagement: React.FC<CollegeProfileManagementProps> =
                 Engineering Departments
               </h2>
               <div className="space-y-2 text-xs text-slate-700">
-                {college.departments.map((dept) => (
-                  <div key={dept} className="p-2.5 bg-slate-50 rounded border border-slate-100 font-medium">
-                    {dept}
-                  </div>
-                ))}
+                {(college.departments || []).length > 0 ? (
+                  (college.departments || []).map((dept) => (
+                    <div key={dept} className="p-2.5 bg-slate-50 rounded border border-slate-100 font-medium">
+                      {dept}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-400 py-2">No departments registered.</div>
+                )}
               </div>
             </div>
 

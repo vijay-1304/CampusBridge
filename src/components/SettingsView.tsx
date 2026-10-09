@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { Settings as SettingsIcon, Bell, Shield, Sliders, CheckCircle2, RotateCcw, Sparkles, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SettingsViewProps {
   currentRole: UserRole;
@@ -15,6 +16,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onTriggerSkillUpdate,
   onBack,
 }) => {
+  const { profile, user } = useAuth();
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [matchingAlerts, setMatchingAlerts] = useState(true);
   const [publicProfile, setPublicProfile] = useState(true);
@@ -26,13 +28,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setTimeout(() => setSaveToast(false), 3000);
   };
 
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || '';
+
   const roleTitle =
     currentRole === 'student'
-      ? 'Student Account Settings (Vijay Bhosale)'
+      ? `Student Account Settings${displayName ? ` (${displayName})` : ''}`
       : currentRole === 'industry'
-      ? 'Industry Sponsor Settings (ABC Technologies)'
+      ? `Industry Partner Settings${displayName ? ` (${displayName})` : ''}`
       : currentRole === 'college'
-      ? 'Institutional Settings (ABC Engineering College)'
+      ? `Institutional Settings${displayName ? ` (${displayName})` : ''}`
       : 'System Settings';
 
   return (
@@ -61,7 +65,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {roleTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manage your notification frequencies, confidentiality controls, and simulated demo state.
+            Manage your notification preferences and portal configurations.
           </p>
         </div>
       </div>
@@ -69,7 +73,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {saveToast && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-800 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>Settings saved successfully in local session.</span>
+          <span>Settings saved successfully.</span>
         </div>
       )}
 
@@ -93,7 +97,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div>
                 <div className="font-semibold text-slate-900">High-Match Opportunity Notifications</div>
                 <div className="text-slate-500 text-[11px]">
-                  Receive immediate alerts when AI matching score exceeds 85% for an industry challenge.
+                  Receive immediate alerts when deterministic matching score exceeds 85% for an industry challenge.
                 </div>
               </div>
             </label>
@@ -131,43 +135,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
               />
               <div>
-                <div className="font-semibold text-slate-900">CampusBridge Verified Accreditation</div>
+                <div className="font-semibold text-slate-900">Verified Platform Accreditation</div>
                 <div className="text-slate-500 text-[11px]">
-                  Display verified course credentials and institutional seal to enterprise sponsors.
+                  Display verified credentials and institutional verification seal to network partners.
                 </div>
               </div>
             </label>
-          </div>
-        </div>
-
-        {/* DEMO PROTOTYPE CONTROLS (FOR JURY/EVALUATION) */}
-        <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-blue-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-blue-100 pb-2">
-            <Sliders className="w-4 h-4 text-blue-700" />
-            <span>Hackathon Presentation Controls</span>
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Quickly reset mock data or fast-forward the closed-loop state during live judging demonstrations.
-          </p>
-
-          <div className="flex flex-wrap gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onResetDemoData}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Demo to Initial State</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onTriggerSkillUpdate}
-              className="px-3.5 py-2 text-xs font-semibold text-blue-800 bg-blue-100/70 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors inline-flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-700" />
-              <span>Simulate Closed-Loop Skill Update</span>
-            </button>
           </div>
         </div>
 

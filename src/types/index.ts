@@ -120,12 +120,14 @@ export interface ApplicationItem {
 export interface IndustryChallenge {
   id: string;
   title: string;
+  company?: string;
+  department?: string;
   description: string;
   requiredSkills: string[];
   domain: string;
-  collaborationType: 'Student Project' | 'Academic Collaboration' | 'Research' | 'Internship';
+  collaborationType: 'Student Project' | 'Academic Collaboration' | 'Research' | 'Internship' | string;
   academicMatchesCount: number;
-  status: 'Finding Partners' | 'Collaboration Active' | 'Completed';
+  status: 'Finding Partners' | 'Collaboration Active' | 'Completed' | 'Draft' | 'published' | 'closed' | string;
 }
 
 export interface AcademicMatch {
@@ -150,17 +152,19 @@ export interface CollegeDetail {
   id: string;
   name: string;
   tagline: string;
+  location?: string;
+  website?: string;
   about: string;
   capabilities: {
     faculty: number;
-    students: string;
+    students: string | number;
     specializedLabs: number;
-    relevantProjects: string;
+    relevantProjects: string | number;
   };
   areasOfExpertise: string[];
   facilities: string[];
   industryCollaborationsCompleted: number;
-  departments: string[];
+  departments?: string[];
 }
 
 export interface WorkspaceMilestone {
